@@ -1,0 +1,6 @@
+{
+  "name": "Alpha AI",
+  "description": "Next-Gen AI Platform featuring 10 Specialized AI Agents: Coding, Study, PDF, Image, Writing, Translator, Math, Travel, Health, and Business.",
+  "requestFramePermissions": ["microphone", "camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
