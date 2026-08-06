@@ -24,7 +24,7 @@ export const DAILY_TIPS = [
   {
     title: 'Voice-to-Voice AI Conversation',
     tip: 'Tap "Live Voice" in the top header or voice button to talk directly with your AI Agent assistant.',
-    prompt: 'Let us have a live conversation about quantum physics and AI trends.'
+    prompt: 'Let us have a live conversation about Class 12 Accountancy Partnership and Economics trends.'
   }
 ];
 

@@ -14,6 +14,7 @@ import { GoogleGenAI } from "@google/genai";
 var SecurityKeyManager = class {
   constructor() {
     this.memoryVaultKey = null;
+    this.memoryOpenRouterKey = null;
     this.lastValidatedTimestamp = null;
     this.vaultPath = path.join(process.cwd(), ".secure_vault.dat");
     this.masterSecret = process.env.VAULT_MASTER_SECRET || crypto.createHash("sha256").update(process.cwd() + (process.env.APP_URL || "alpha-ai-secure-salt")).digest("hex");
@@ -84,35 +85,50 @@ var SecurityKeyManager = class {
             this.lastValidatedTimestamp = parsed.lastValidated || (/* @__PURE__ */ new Date()).toISOString();
           }
         }
+        if (parsed.orIv && parsed.orEncryptedData && parsed.orTag) {
+          const decryptedOrKey = this.decrypt(parsed.orIv, parsed.orEncryptedData, parsed.orTag);
+          if (decryptedOrKey) {
+            this.memoryOpenRouterKey = decryptedOrKey;
+          }
+        }
       }
     } catch (err) {
       console.warn("Vault load warning:", err);
     }
   }
   /**
-   * Saves vault key to encrypted file
+   * Saves vault keys to encrypted file
    */
-  saveVaultToFile(apiKey) {
+  saveVaultToFile(apiKey, openRouterKey) {
     try {
       const payload = this.encrypt(apiKey);
+      let orPayload = {};
+      if (openRouterKey) {
+        const encryptedOr = this.encrypt(openRouterKey);
+        orPayload = {
+          orIv: encryptedOr.iv,
+          orEncryptedData: encryptedOr.encryptedData,
+          orTag: encryptedOr.tag
+        };
+      }
       const dataToSave = {
         ...payload,
+        ...orPayload,
         createdAt: (/* @__PURE__ */ new Date()).toISOString(),
         lastValidated: (/* @__PURE__ */ new Date()).toISOString()
       };
       fs.writeFileSync(this.vaultPath, JSON.stringify(dataToSave, null, 2), { mode: 384 });
       this.memoryVaultKey = apiKey;
+      if (openRouterKey) this.memoryOpenRouterKey = openRouterKey;
       this.lastValidatedTimestamp = dataToSave.lastValidated;
     } catch (err) {
       console.error("Failed to save vault file:", err);
       this.memoryVaultKey = apiKey;
+      if (openRouterKey) this.memoryOpenRouterKey = openRouterKey;
     }
   }
   /**
-   * Resolve active API Key based on multi-tiered precedence:
-   * 1. Client Request Header (X-Gemini-API-Key or X-API-Key or Authorization Bearer)
-   * 2. AES-256 Encrypted Storage Vault
-   * 3. Server Environment Variable (GEMINI_API_KEY)
+   * Resolve active Gemini API Key
    */
   getApiKey(req) {
     if (req && req.headers) {
@@ -136,6 +152,25 @@ var SecurityKeyManager = class {
       return envKey.trim();
     }
     throw new Error("GEMINI_API_KEY is not configured in server environment or secure key vault.");
+  }
+  /**
+   * Resolve OpenRouter API Key (Optional for OpenRouter free models)
+   */
+  getOpenRouterKey(req) {
+    if (req && req.headers) {
+      const headerKey = req.headers["x-openrouter-api-key"];
+      if (typeof headerKey === "string" && headerKey.trim().length > 10) {
+        return headerKey.trim();
+      }
+    }
+    if (this.memoryOpenRouterKey && this.memoryOpenRouterKey.trim().length > 10) {
+      return this.memoryOpenRouterKey.trim();
+    }
+    const envKey = process.env.OPENROUTER_API_KEY;
+    if (envKey && envKey.trim().length > 10) {
+      return envKey.trim();
+    }
+    return null;
   }
   /**
    * Get active source label
@@ -166,6 +201,7 @@ var SecurityKeyManager = class {
     }
     const envKey = process.env.GEMINI_API_KEY;
     const envHasKey = !!(envKey && envKey.trim().length > 10 && envKey !== "your_gemini_api_key_here");
+    const openRouterKey = this.getOpenRouterKey(req);
     return {
       configured: !!activeKey,
       activeSource,
@@ -174,6 +210,8 @@ var SecurityKeyManager = class {
       encryptionActive: true,
       vaultHasCustomKey: !!this.memoryVaultKey,
       envHasKey,
+      openRouterConfigured: !!openRouterKey,
+      maskedOpenRouterKey: this.maskKey(openRouterKey || void 0),
       lastValidated: this.lastValidatedTimestamp || (/* @__PURE__ */ new Date()).toISOString(),
       keyFingerprint: this.getKeyFingerprint(activeKey)
     };
@@ -203,7 +241,7 @@ var SecurityKeyManager = class {
   /**
    * Store a custom key into secure vault
    */
-  async storeCustomKey(apiKey) {
+  async storeCustomKey(apiKey, openRouterKey) {
     const validation = await this.validateApiKey(apiKey);
     if (!validation.valid) {
       return {
@@ -212,10 +250,10 @@ var SecurityKeyManager = class {
         status: this.getSecurityStatus()
       };
     }
-    this.saveVaultToFile(apiKey.trim());
+    this.saveVaultToFile(apiKey.trim(), openRouterKey?.trim());
     return {
       success: true,
-      message: "API Key encrypted with AES-256-GCM and saved to secure server vault!",
+      message: "API Keys encrypted with AES-256-GCM and saved to secure server vault!",
       status: this.getSecurityStatus()
     };
   }
@@ -224,6 +262,7 @@ var SecurityKeyManager = class {
    */
   resetCustomKey() {
     this.memoryVaultKey = null;
+    this.memoryOpenRouterKey = null;
     this.lastValidatedTimestamp = null;
     try {
       if (fs.existsSync(this.vaultPath)) {
@@ -234,12 +273,299 @@ var SecurityKeyManager = class {
     }
     return {
       success: true,
-      message: "Custom vault key removed. System fell back to environment key default.",
+      message: "Custom vault keys removed. System fell back to environment defaults.",
       status: this.getSecurityStatus()
     };
   }
 };
 var securityKeyManager = new SecurityKeyManager();
+
+// serverModelHandler.ts
+var FREE_AI_MODELS_SERVER = [
+  {
+    id: "gemini-3.6-flash",
+    name: "Gemini 3.6 Flash",
+    provider: "google",
+    providerLabel: "Google Gemini",
+    description: "Flagship high-speed multimodal model. Best reasoning & search grounding.",
+    contextWindow: "1M tokens",
+    speed: "Ultra Fast",
+    isFree: true,
+    badge: "Recommended",
+    supportsImage: true
+  },
+  {
+    id: "gemini-2.5-flash",
+    name: "Gemini 2.5 Flash",
+    provider: "google",
+    providerLabel: "Google Gemini",
+    description: "Fast versatile model for reasoning, coding, and structured responses.",
+    contextWindow: "1M tokens",
+    speed: "Ultra Fast",
+    isFree: true,
+    supportsImage: true
+  },
+  {
+    id: "gemini-2.5-flash-lite",
+    name: "Gemini 2.5 Flash Lite",
+    provider: "google",
+    providerLabel: "Google Gemini",
+    description: "Lightweight high-throughput model with minimal latency.",
+    contextWindow: "1M tokens",
+    speed: "Ultra Fast",
+    isFree: true,
+    supportsImage: true
+  },
+  {
+    id: "gemini-2.0-flash-lite",
+    name: "Gemini 2.0 Flash Lite",
+    provider: "google",
+    providerLabel: "Google Gemini",
+    description: "Ultra-lean Flash variant for instant low-power pings.",
+    contextWindow: "1M tokens",
+    speed: "Ultra Fast",
+    isFree: true
+  },
+  {
+    id: "deepseek/deepseek-r1:free",
+    name: "DeepSeek R1 (Free)",
+    provider: "openrouter",
+    providerLabel: "OpenRouter Free",
+    description: "Open-weights reasoning model with chain-of-thought capabilities.",
+    contextWindow: "128K tokens",
+    speed: "Balanced",
+    isFree: true,
+    badge: "Reasoning"
+  },
+  {
+    id: "meta-llama/llama-3.3-70b-instruct:free",
+    name: "Llama 3.3 70B Instruct (Free)",
+    provider: "openrouter",
+    providerLabel: "OpenRouter Free",
+    description: "Meta flagship open 70B parameter model for complex instruction following.",
+    contextWindow: "128K tokens",
+    speed: "Fast",
+    isFree: true,
+    badge: "Open Meta"
+  },
+  {
+    id: "google/gemma-2-9b-it:free",
+    name: "Gemma 2 9B IT (Free)",
+    provider: "openrouter",
+    providerLabel: "OpenRouter Free",
+    description: "Google lightweight Gemma 2 open model optimized for general dialogue.",
+    contextWindow: "8K tokens",
+    speed: "Ultra Fast",
+    isFree: true
+  },
+  {
+    id: "qwen/qwen-2.5-coder-32b-instruct:free",
+    name: "Qwen 2.5 Coder 32B (Free)",
+    provider: "openrouter",
+    providerLabel: "OpenRouter Free",
+    description: "Alibaba Qwen 2.5 32B model fine-tuned specifically for code generation.",
+    contextWindow: "32K tokens",
+    speed: "Fast",
+    isFree: true,
+    badge: "Coding Specialist"
+  },
+  {
+    id: "mistralai/mistral-7b-instruct:free",
+    name: "Mistral 7B Instruct (Free)",
+    provider: "openrouter",
+    providerLabel: "OpenRouter Free",
+    description: "Mistral AI lightweight 7B model for quick conversational turns.",
+    contextWindow: "32K tokens",
+    speed: "Ultra Fast",
+    isFree: true
+  }
+];
+var delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+async function callOpenRouter(modelId, messages, systemPrompt, settings, req) {
+  const userOpenRouterKey = securityKeyManager.getOpenRouterKey(req);
+  const openRouterMessages = [];
+  if (systemPrompt) {
+    openRouterMessages.push({ role: "system", content: systemPrompt });
+  }
+  for (const msg of messages) {
+    if (msg.parts && Array.isArray(msg.parts)) {
+      const textPart = msg.parts.map((p) => p.text || "").filter(Boolean).join("\n");
+      if (textPart) {
+        openRouterMessages.push({
+          role: msg.role === "model" ? "assistant" : msg.role || "user",
+          content: textPart
+        });
+      }
+    } else if (msg.content) {
+      openRouterMessages.push({
+        role: msg.role === "assistant" || msg.role === "model" ? "assistant" : msg.role || "user",
+        content: msg.content
+      });
+    }
+  }
+  const headers = {
+    "Content-Type": "application/json",
+    "HTTP-Referer": process.env.APP_URL || "https://ai.studio/build",
+    "X-Title": "Alpha AI Assistant"
+  };
+  if (userOpenRouterKey) {
+    headers["Authorization"] = `Bearer ${userOpenRouterKey}`;
+  } else {
+    headers["Authorization"] = `Bearer openrouter-free-tier`;
+  }
+  const payload = {
+    model: modelId,
+    messages: openRouterMessages,
+    temperature: settings?.temperature ?? 0.7,
+    max_tokens: settings?.maxTokens ?? 2048
+  };
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`OpenRouter error (${response.status}): ${errorText.slice(0, 200)}`);
+  }
+  const data = await response.json();
+  const textOutput = data?.choices?.[0]?.message?.content || "";
+  if (!textOutput) {
+    throw new Error("OpenRouter returned an empty response.");
+  }
+  return {
+    text: textOutput,
+    modelUsed: modelId,
+    isFallback: false
+  };
+}
+async function callGemini(ai, modelId, contents, systemPrompt, settings, tools) {
+  const config = {
+    systemInstruction: systemPrompt
+  };
+  if (settings?.temperature !== void 0) {
+    config.temperature = settings.temperature;
+  }
+  if (settings?.maxTokens !== void 0) {
+    config.maxOutputTokens = settings.maxTokens;
+  }
+  if (tools && tools.length > 0) {
+    config.tools = tools;
+  }
+  if (settings?.enableSearch !== false) {
+    config.toolConfig = { includeServerSideToolInvocations: true };
+  }
+  const res = await ai.models.generateContent({
+    model: modelId,
+    contents,
+    config
+  });
+  return {
+    text: res.text || "",
+    functionCalls: res.functionCalls || [],
+    candidates: res.candidates || [],
+    modelUsed: modelId
+  };
+}
+async function executeMultiModelRequest(ai, contents, fullSystemPrompt, settings, tools, req) {
+  const primaryModel = settings?.selectedModel || settings?.aiModel || "gemini-3.6-flash";
+  const autoFallback = settings?.autoFallback !== false;
+  let candidates = [];
+  if (primaryModel.includes("/") || primaryModel.includes(":free")) {
+    candidates = [
+      primaryModel,
+      "meta-llama/llama-3.3-70b-instruct:free",
+      "deepseek/deepseek-r1:free",
+      "qwen/qwen-2.5-coder-32b-instruct:free",
+      "gemini-3.6-flash",
+      "gemini-2.5-flash"
+    ];
+  } else {
+    candidates = [
+      primaryModel,
+      "gemini-2.5-flash",
+      "gemini-2.5-flash-lite",
+      "gemini-2.0-flash-lite",
+      "deepseek/deepseek-r1:free",
+      "meta-llama/llama-3.3-70b-instruct:free"
+    ];
+  }
+  candidates = Array.from(new Set(candidates));
+  if (!autoFallback) {
+    candidates = [primaryModel];
+  }
+  let lastError = null;
+  for (let i = 0; i < candidates.length; i++) {
+    const candidateModel = candidates[i];
+    const isFallbackAttempt = i > 0;
+    if (isFallbackAttempt) {
+      await delay(800 * i);
+    }
+    try {
+      if (candidateModel.includes("/") || candidateModel.includes(":free")) {
+        const result = await callOpenRouter(candidateModel, contents, fullSystemPrompt, settings, req);
+        return {
+          text: result.text,
+          groundingSources: [],
+          toolExecutions: [],
+          modelUsed: result.modelUsed,
+          wasFallback: isFallbackAttempt
+        };
+      } else {
+        const toolsToUse = isFallbackAttempt ? [] : tools;
+        const result = await callGemini(ai, candidateModel, contents, fullSystemPrompt, settings, toolsToUse);
+        const groundingChunks = result.candidates?.[0]?.groundingMetadata?.groundingChunks;
+        const groundingSources = groundingChunks ? groundingChunks.map((chunk) => {
+          if (chunk.web) {
+            return { title: chunk.web.title || "Web Source", url: chunk.web.uri };
+          }
+          return null;
+        }).filter(Boolean) : [];
+        const toolExecutions = [];
+        let generatedImageUrl = void 0;
+        if (result.functionCalls && result.functionCalls.length > 0) {
+          for (const fc of result.functionCalls) {
+            toolExecutions.push({
+              name: fc.name,
+              args: fc.args
+            });
+            if (fc.name === "generate_image" && fc.args?.prompt) {
+              try {
+                const imgRes = await ai.models.generateContent({
+                  model: "gemini-2.5-flash",
+                  contents: { parts: [{ text: fc.args.prompt }] },
+                  config: {
+                    imageConfig: { aspectRatio: "1:1" }
+                  }
+                });
+                for (const part of imgRes.candidates?.[0]?.content?.parts || []) {
+                  if (part.inlineData) {
+                    generatedImageUrl = `data:image/png;base64,${part.inlineData.data}`;
+                    break;
+                  }
+                }
+              } catch (imgErr) {
+                console.error("Error in generate_image tool:", imgErr);
+              }
+            }
+          }
+        }
+        return {
+          text: result.text || "Response received.",
+          groundingSources,
+          toolExecutions,
+          generatedImageUrl,
+          modelUsed: result.modelUsed,
+          wasFallback: isFallbackAttempt
+        };
+      }
+    } catch (err) {
+      lastError = err;
+      console.warn(`Model execution attempt ${i + 1} (${candidateModel}) failed:`, err?.message || err);
+    }
+  }
+  throw lastError || new Error("All free AI model attempts failed.");
+}
 
 // server.ts
 dotenv.config();
@@ -350,57 +676,20 @@ app.post("/api/security/reset-key", (req, res) => {
     res.status(500).json({ success: false, message: err.message || "Failed to reset key" });
   }
 });
-var delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-async function callGeminiWithFallback(ai, primaryContents, fullSystemPrompt, settings) {
-  const primaryTools = [
-    { functionDeclarations: [createTaskDeclaration, saveNoteDeclaration, generateImageDeclaration, saveMemoryDeclaration] }
-  ];
-  if (settings?.enableSearch !== false) {
-    primaryTools.push({ googleSearch: {} });
+app.get("/api/models", (req, res) => {
+  try {
+    const secStatus = securityKeyManager.getSecurityStatus(req);
+    res.json({
+      models: FREE_AI_MODELS_SERVER,
+      defaultModel: "gemini-3.6-flash",
+      geminiConfigured: secStatus.configured,
+      openRouterConfigured: secStatus.openRouterConfigured,
+      autoFallbackAvailable: true
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Failed to list models" });
   }
-  const requestedModel = settings?.aiModel || "gemini-3.6-flash";
-  const attempts = [
-    { model: requestedModel, tools: primaryTools, useSearchConfig: settings?.enableSearch !== false, delayBefore: 0 },
-    { model: "gemini-3.6-flash", tools: primaryTools, useSearchConfig: settings?.enableSearch !== false, delayBefore: requestedModel === "gemini-3.6-flash" ? 1e3 : 0 },
-    { model: "gemini-3.6-flash", tools: [{ functionDeclarations: [createTaskDeclaration, saveNoteDeclaration, generateImageDeclaration, saveMemoryDeclaration] }], useSearchConfig: false, delayBefore: 1e3 },
-    { model: "gemini-2.5-flash", tools: [{ functionDeclarations: [createTaskDeclaration, saveNoteDeclaration, generateImageDeclaration, saveMemoryDeclaration] }], useSearchConfig: false, delayBefore: 1200 },
-    { model: "gemini-3.1-flash-lite", tools: [], useSearchConfig: false, delayBefore: 1500 }
-  ];
-  let lastError = null;
-  for (let i = 0; i < attempts.length; i++) {
-    const attempt = attempts[i];
-    if (attempt.delayBefore > 0) {
-      await delay(attempt.delayBefore);
-    }
-    try {
-      const config = {
-        systemInstruction: fullSystemPrompt
-      };
-      if (settings?.temperature !== void 0) {
-        config.temperature = settings.temperature;
-      }
-      if (settings?.maxTokens !== void 0) {
-        config.maxOutputTokens = settings.maxTokens;
-      }
-      if (attempt.tools && attempt.tools.length > 0) {
-        config.tools = attempt.tools;
-      }
-      if (attempt.useSearchConfig) {
-        config.toolConfig = { includeServerSideToolInvocations: true };
-      }
-      const response = await ai.models.generateContent({
-        model: attempt.model,
-        contents: primaryContents,
-        config
-      });
-      return response;
-    } catch (err) {
-      lastError = err;
-      console.warn(`Gemini API attempt ${i + 1} (${attempt.model}) failed:`, err?.message || err);
-    }
-  }
-  throw lastError;
-}
+});
 app.post("/api/chat", async (req, res) => {
   try {
     const ai = getGenAI(req);
@@ -474,61 +763,40 @@ When using tools, also summarize what action was taken in friendly text.`;
         ]
       });
     }
-    let response = null;
+    const primaryTools = [
+      { functionDeclarations: [createTaskDeclaration, saveNoteDeclaration, generateImageDeclaration, saveMemoryDeclaration] }
+    ];
+    if (settings?.enableSearch !== false) {
+      primaryTools.push({ googleSearch: {} });
+    }
+    let responseResult = null;
     try {
-      response = await callGeminiWithFallback(ai, contents, fullSystemPrompt, settings);
+      responseResult = await executeMultiModelRequest(
+        ai,
+        contents,
+        fullSystemPrompt,
+        settings,
+        primaryTools,
+        req
+      );
     } catch (apiErr) {
-      console.error("All Gemini API attempts failed:", apiErr);
+      console.error("All Multi-Model AI attempts failed:", apiErr);
       return res.json({
-        text: "\u26A0\uFE0F **API Rate Limit / Quota Reached**: Gemini API quota limit exceed ho gayi hai. Kripya 30-60 seconds baad wapas retry karein.",
+        text: "\u26A0\uFE0F **All Free AI Models Busy / Rate Limited**: Free tier quota limits reach ho gayi hain. Kripya 30-60 seconds baad retry karein ya custom API key configure karein.",
         groundingSources: [],
         toolExecutions: [],
-        generatedImageUrl: void 0
+        generatedImageUrl: void 0,
+        modelUsed: settings?.selectedModel || "gemini-3.6-flash",
+        wasFallback: true
       });
     }
-    const textOutput = response.text || "";
-    const functionCalls = response.functionCalls || [];
-    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
-    const groundingSources = groundingChunks ? groundingChunks.map((chunk) => {
-      if (chunk.web) {
-        return { title: chunk.web.title || "Web Source", url: chunk.web.uri };
-      }
-      return null;
-    }).filter(Boolean) : [];
-    const toolExecutions = [];
-    let generatedImageUrl = void 0;
-    if (functionCalls && functionCalls.length > 0) {
-      for (const fc of functionCalls) {
-        toolExecutions.push({
-          name: fc.name,
-          args: fc.args
-        });
-        if (fc.name === "generate_image" && fc.args?.prompt) {
-          try {
-            const imgRes = await ai.models.generateContent({
-              model: "gemini-3.1-flash-lite-image",
-              contents: { parts: [{ text: fc.args.prompt }] },
-              config: {
-                imageConfig: { aspectRatio: "1:1" }
-              }
-            });
-            for (const part of imgRes.candidates?.[0]?.content?.parts || []) {
-              if (part.inlineData) {
-                generatedImageUrl = `data:image/png;base64,${part.inlineData.data}`;
-                break;
-              }
-            }
-          } catch (imgErr) {
-            console.error("Error generating image tool:", imgErr);
-          }
-        }
-      }
-    }
     res.json({
-      text: textOutput || "Processing completed.",
-      groundingSources,
-      toolExecutions,
-      generatedImageUrl
+      text: responseResult.text || "Processing completed.",
+      groundingSources: responseResult.groundingSources || [],
+      toolExecutions: responseResult.toolExecutions || [],
+      generatedImageUrl: responseResult.generatedImageUrl,
+      modelUsed: responseResult.modelUsed,
+      wasFallback: responseResult.wasFallback
     });
   } catch (err) {
     console.error("Chat API Error:", err);

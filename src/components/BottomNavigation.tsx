@@ -1,8 +1,8 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { MessageSquare, Bot, CheckSquare, ShieldCheck, Settings, Lock, LayoutDashboard, Wand2 } from 'lucide-react';
+import { MessageSquare, Bot, CheckSquare, ShieldCheck, Settings, Lock, LayoutDashboard, Wand2, GraduationCap } from 'lucide-react';
 
-export type NavViewMode = 'dashboard' | 'chat' | 'tools' | 'personas' | 'tasks' | 'settings' | 'security';
+export type NavViewMode = 'dashboard' | 'commerce' | 'chat' | 'tools' | 'personas' | 'tasks' | 'settings' | 'security';
 
 interface BottomNavigationProps {
   activeView: any;
@@ -20,6 +20,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
 }) => {
   const navItems: { id: NavViewMode; label: string; icon: React.ElementType; badge?: string | number }[] = [
     { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
+    { id: 'commerce', label: 'Commerce', icon: GraduationCap },
     { id: 'chat', label: 'Chat', icon: MessageSquare },
     { id: 'tools', label: 'Tools', icon: Wand2 },
     { id: 'tasks', label: 'Tasks', icon: CheckSquare, badge: taskCount > 0 ? taskCount : undefined },

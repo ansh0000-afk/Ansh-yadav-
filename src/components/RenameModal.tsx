@@ -56,7 +56,7 @@ export const RenameModal: React.FC<RenameModalProps> = ({
             autoFocus
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Maharashtra Board Physics Notes..."
+            placeholder="e.g. Class 12 Accountancy Partnership Notes..."
             className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
           />
 

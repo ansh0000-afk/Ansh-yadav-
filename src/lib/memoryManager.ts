@@ -28,7 +28,7 @@ export class MemoryManager {
         {
           id: 'mem-2',
           key: 'Preferred Stream / Field',
-          value: 'Maharashtra Board Class 12 Science & Coding (React, Flutter, Python)',
+          value: 'Class 12 Commerce (Accountancy, Business Studies, Economics, English, Hindi, CS, EP, PE)',
           category: 'preference',
           createdAt: initialDate,
           updatedAt: initialDate

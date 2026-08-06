@@ -314,7 +314,7 @@ export const AIWorkspaceToolsView: React.FC<AIWorkspaceToolsViewProps> = ({
                   type="text"
                   value={mindMapTopic}
                   onChange={(e) => setMindMapTopic(e.target.value)}
-                  placeholder="Enter topic (e.g., Quantum Computing, Marketing Strategy, Class 12 Physics)..."
+                  placeholder="Enter topic (e.g., Accountancy Partnership, Microeconomics, Business Studies)..."
                   className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
                 />
                 <button
@@ -589,7 +589,7 @@ export const AIWorkspaceToolsView: React.FC<AIWorkspaceToolsViewProps> = ({
                   type="text"
                   value={studyTopic}
                   onChange={(e) => setStudyTopic(e.target.value)}
-                  placeholder="Enter study topic (e.g. Class 12 Physics, React Hooks)..."
+                  placeholder="Enter study topic (e.g. Class 12 Accountancy, Macroeconomics, BST)..."
                   className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl px-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
                 />
                 <button

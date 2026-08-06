@@ -25,7 +25,8 @@ import {
   Lock,
   Unlock,
   LayoutDashboard,
-  Wand2
+  Wand2,
+  GraduationCap
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -367,6 +368,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full font-mono">
             PRO
+          </span>
+        </button>
+
+        <button
+          onClick={() => {
+            setCurrentView('commerce');
+            if (onCloseMobile) onCloseMobile();
+          }}
+          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition ${
+            currentView === 'commerce'
+              ? 'bg-amber-600/20 text-amber-300 border border-amber-500/40 font-bold'
+              : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
+          }`}
+        >
+          <div className="flex items-center gap-2.5">
+            <GraduationCap className="w-4 h-4 text-amber-400 animate-pulse" />
+            <span>Class 12 Commerce</span>
+          </div>
+          <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-mono font-bold border border-amber-500/30">
+            HUB
           </span>
         </button>
 

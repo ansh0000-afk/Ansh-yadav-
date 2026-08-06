@@ -660,7 +660,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 />
                 <input
                   type="text"
-                  placeholder="Value (e.g. 95% in Maharashtra Class 12 Science)"
+                  placeholder="Value (e.g. 95% in Class 12 Commerce Board Exam)"
                   value={newMemVal}
                   onChange={(e) => setNewMemVal(e.target.value)}
                   className="w-2/3 bg-slate-800/90 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
@@ -903,7 +903,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 value={userInstructions}
                 onChange={(e) => setUserInstructions(e.target.value)}
                 rows={5}
-                placeholder="e.g. Always explain Maharashtra HSC physics formulas with examples..."
+                placeholder="e.g. Always explain Class 12 Accountancy numericals step-by-step with journal entries..."
                 className="w-full bg-slate-800/90 border border-slate-700/80 rounded-xl p-3.5 text-xs text-white focus:outline-none focus:border-indigo-500 resize-none"
               />
             </div>

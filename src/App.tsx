@@ -16,6 +16,7 @@ import { FloatingAssistantWidget } from './components/FloatingAssistantWidget';
 import { OnboardingTutorialModal } from './components/OnboardingTutorialModal';
 import { DashboardView } from './components/DashboardView';
 import { AIWorkspaceToolsView } from './components/AIWorkspaceToolsView';
+import { CommerceStudyHubView } from './components/CommerceStudyHubView';
 import { DeviceSecurity } from './lib/deviceSecurity';
 import { AnimatePresence, motion } from 'motion/react';
 import { Shield, EyeOff, ShieldAlert } from 'lucide-react';
@@ -27,8 +28,8 @@ import { auth, onAuthStateChanged } from './lib/firebase';
 const INITIAL_TASKS: Task[] = [
   {
     id: 't-1',
-    title: 'Class 12 Physics: Rotational Dynamics Revise Karo',
-    description: 'Maharashtra Board textbook Chapter 1 derivations aur numericals solve karna hai.',
+    title: 'Class 12 Accountancy: Reconstitution of Partnership & Goodwill',
+    description: 'Solve textbook numericals for Super Profit Method and Capitalisation Method.',
     priority: 'high',
     status: 'in_progress',
     dueDate: 'Today',
@@ -36,8 +37,8 @@ const INITIAL_TASKS: Task[] = [
   },
   {
     id: 't-2',
-    title: 'YouTube Video Script Write-up for Coding Tutorial',
-    description: 'React full course for beginners - Hindi/Hinglish title aur outline ready karna hai.',
+    title: 'Business Studies: Principles of Management Case Studies',
+    description: 'Revise Henri Fayol 14 Principles and Taylor Scientific Management techniques.',
     priority: 'medium',
     status: 'todo',
     dueDate: 'Tomorrow',
@@ -48,12 +49,12 @@ const INITIAL_TASKS: Task[] = [
 const INITIAL_NOTES: KnowledgeNote[] = [
   {
     id: 'n-1',
-    title: 'Maharashtra Board Class 12 Exam Tips',
-    content: `### Important Strategy for Class 12 HSC Board:
-- **Derivations**: Har chapter ke key derivations daily 2 baar practice karo.
-- **Numericals**: Formula list banakar daily 5 numericals solve karo.
-- **Coding & Tech**: React / JavaScript concepts daily 1 hour practice karo.
-- **YouTube Strategy**: Consistently 2 videos per week uploading + catchy thumbnails.`,
+    title: 'Class 12 Commerce Board Exam Master Guide',
+    content: `### High-Impact Revision Strategy for Class 12 Commerce:
+- **Accountancy**: Daily 3 numericals on Partnership Fundamentals, Reconstitution, and Pro-rata Share Forfeiture.
+- **Business Studies**: Practice case studies on Principles of Management and Financial Management (Trading on Equity).
+- **Economics**: Master National Income calculation methods and Investment Multiplier formulas.
+- **English & Hindi**: Memorize Literature chapter summaries and writing skill formats (Notices, Letters, Bio-data).`,
     category: 'Studies',
     createdAt: new Date().toISOString()
   }
@@ -61,7 +62,7 @@ const INITIAL_NOTES: KnowledgeNote[] = [
 
 const DEFAULT_SESSION: ChatSession = {
   id: 'session-default',
-  title: 'Welcome to Alpha AI',
+  title: 'Welcome to Class 12 Commerce AI',
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   messages: []
@@ -77,15 +78,15 @@ export default function App() {
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([
     {
       id: 'cal-1',
-      title: 'AI Code Review & Unit Testing',
+      title: 'Class 12 Accountancy Partnership Practice',
       date: new Date().toISOString().split('T')[0],
       time: '14:00',
-      category: 'ai_task',
+      category: 'study',
       createdAt: new Date().toISOString()
     },
     {
       id: 'cal-2',
-      title: 'Class 12 Physics Derivation Practice',
+      title: 'Macroeconomics National Income Numericals',
       date: new Date().toISOString().split('T')[0],
       time: '17:30',
       category: 'study',
@@ -120,7 +121,7 @@ export default function App() {
         pitch: 1.0,
         autoSpeak: false
       },
-      userCustomInstructions: 'Always reply in simple Hinglish step by step. Help me with Maharashtra Board Class 12 studies, coding, YouTube, websites, and daily tasks in a friendly and accurate manner.'
+      userCustomInstructions: 'Always reply in simple Hinglish step by step. Help me with Class 12 Commerce studies (Accountancy, Business Studies, Economics, English, Hindi, Computer Applications, Entrepreneurship, Physical Education) in a friendly and accurate manner.'
     };
   });
 
@@ -732,6 +733,15 @@ export default function App() {
               onAddTask={handleAddTask}
               onAddCalendarEvent={(evt) => {
                 setCalendarEvents(prev => [...prev, { ...evt, id: `cal-${Date.now()}`, createdAt: new Date().toISOString() }]);
+              }}
+            />
+          )}
+
+          {currentView === 'commerce' && (
+            <CommerceStudyHubView
+              onAskAgentAboutTopic={(topic) => {
+                setCurrentView('chat');
+                handleSendMessage(`Explain this Class 12 Commerce concept in detail with examples and step-by-step notes: ${topic}`);
               }}
             />
           )}

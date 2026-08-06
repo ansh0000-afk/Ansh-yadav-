@@ -23,7 +23,8 @@ import {
   BookOpen,
   Code2,
   FileSearch,
-  Grid
+  Grid,
+  GraduationCap
 } from 'lucide-react';
 import { Task, KnowledgeNote, ChatSession, UserProfile, CalendarEvent } from '../types';
 import { DailyTipsWidget } from './DailyTipsWidget';
@@ -84,10 +85,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   };
 
   const toolTiles = [
+    { title: 'Class 12 Commerce Hub', desc: 'Notes, MCQs, PYQs & Timetable', icon: GraduationCap, color: 'from-amber-600 to-orange-600', action: () => onNavigateView('commerce') },
     { title: 'AI Mind Map', desc: 'Visual Concept Generator', icon: Grid, color: 'from-indigo-600 to-purple-600', action: () => onNavigateView('tools') },
     { title: 'AI Document Studio', desc: 'Resume, Email, Essay Writer', icon: FileText, color: 'from-purple-600 to-pink-600', action: () => onNavigateView('tools') },
     { title: 'AI Code Assistant', desc: 'Generate & Debug Code', icon: Code2, color: 'from-cyan-600 to-blue-600', action: () => onNavigateView('tools') },
-    { title: 'AI YouTube & Web', desc: 'Instant Summarizer', icon: FileSearch, color: 'from-amber-600 to-orange-600', action: () => onNavigateView('tools') },
   ];
 
   return (

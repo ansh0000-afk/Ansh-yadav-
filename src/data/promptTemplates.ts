@@ -112,11 +112,38 @@ export const PROMPT_TEMPLATES: PromptTemplate[] = [
   // Study & Learning
   {
     id: 'study-concept-explainer',
-    title: 'Complex Concept Simplifier (Feynman Technique)',
+    title: 'Maharashtra HSC Commerce Concept Simplifier',
     category: 'study',
-    description: 'Explain physics, math, science, or economics concepts simply.',
+    description: 'Explain Book Keeping, OCM, Economics, SP, and Math concepts as per Balbharati textbook.',
     iconName: 'GraduationCap',
-    prompt: 'Explain the concept of "[Topic]" using simple real-world analogies, step-by-step bullet points, and key formulas if applicable.',
-    tags: ['Study', 'Learning', 'Feynman']
+    prompt: 'Explain the Maharashtra HSC Class 12 Commerce topic "[Topic]" using Balbharati textbook standards, simple real-world analogies, step-by-step points, and journal entries or formulas if applicable.',
+    tags: ['Maharashtra Board', 'HSC Commerce', 'Balbharati']
+  },
+  {
+    id: 'accountancy-solver',
+    title: 'HSC Book Keeping & Accountancy (BK) Practical Solver',
+    category: 'study',
+    description: 'Solve Partnership Final Accounts, NPO, Bill of Exchange & Share Capital practical problems.',
+    iconName: 'Calculator',
+    prompt: 'Solve this Maharashtra HSC Board Book Keeping & Accountancy (BK) practical problem step-by-step with Debit/Credit Journal Entries, Ledger Formats, Working Notes, and Balance Sheet as per Balbharati standard:\n\n"[Insert BK Question Here]"',
+    tags: ['BK & Accountancy', 'HSC Board', 'Final Accounts']
+  },
+  {
+    id: 'ocm-case-resolver',
+    title: 'OCM Case Study & Management Principles Resolver',
+    category: 'study',
+    description: 'Identify Henri Fayol principles, POSDCORB functions, and Consumer Protection rights.',
+    iconName: 'Briefcase',
+    prompt: 'Analyze this Maharashtra HSC Organisation of Commerce & Management (OCM) case study/situation, identify the management principles/functions, and write structured 3-mark or 8-mark board exam answers:\n\n"[Insert OCM Case Study Here]"',
+    tags: ['OCM', 'Maharashtra Board', 'Fayol 14 Principles']
+  },
+  {
+    id: 'economics-macro-explainer',
+    title: 'HSC Economics Law of Demand & National Income Solver',
+    category: 'study',
+    description: 'Explain Law of DMU, Elasticity of Demand, and National Income 3 Methods.',
+    iconName: 'TrendingUp',
+    prompt: 'Explain this Maharashtra HSC Economics concept or solve the numerical for National Income / Price Elasticity step-by-step with schedules, diagrams, assumptions, and exceptions:\n\n"[Insert Question Here]"',
+    tags: ['Economics', 'HSC Board', 'Law of Demand']
   }
 ];
