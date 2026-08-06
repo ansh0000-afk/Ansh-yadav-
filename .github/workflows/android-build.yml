@@ -31,12 +31,16 @@ jobs:
           npm install
 
       - name: Build Web App
-        run: |
-          npm run build
+  env:
+    GEMINI_API_KEY: ${{ secrets.MY_GEMINI_API_KEY }}
+  run: |
+    npm run build
 
-      - name: Add and Sync Capacitor Android
-        run: |
-          npx cap sync android
+- name: Add and Sync Capacitor Android
+  env:
+    GEMINI_API_KEY: ${{ secrets.MY_GEMINI_API_KEY }}
+  run: |
+    npx cap sync android
 
       - name: Setup Gradle Wrapper & Executable
         run: |
