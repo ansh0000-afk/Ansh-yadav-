@@ -139,7 +139,7 @@ app.get('/api/models', (req, res) => {
     const secStatus = securityKeyManager.getSecurityStatus(req);
     res.json({
       models: FREE_AI_MODELS_SERVER,
-      defaultModel: 'gemini-3.6-flash',
+      defaultModel: 'gemini-3.5-flash',
       geminiConfigured: secStatus.configured,
       openRouterConfigured: secStatus.openRouterConfigured,
       autoFallbackAvailable: true
@@ -295,15 +295,12 @@ app.post('/api/analyze', async (req, res) => {
     if (taskType === 'complex_reasoning' || taskType === 'code_analysis') {
       selectedModel = 'gemini-3.1-pro-preview';
       systemInstruction = 'You are a Senior AI Code & Systems Analyst. Analyze the input thoroughly, identify edge cases, performance bottlenecks, bugs, and provide refactored, optimized code with detailed explanations.';
-    } else if (taskType === 'summarize') {
-      selectedModel = 'gemini-3.6-flash';
-      systemInstruction = 'You are a concise executive summarizer. Provide key takeaways, action items, and a structured summary.';
-    } else if (taskType === 'fast_edit') {
+    } else if (taskType === 'summarize' || taskType === 'general_task') {
+      selectedModel = 'gemini-3.5-flash';
+      systemInstruction = 'You are a versatile AI assistant and executive summarizer. Provide key takeaways, action items, and a structured response.';
+    } else if (taskType === 'fast_edit' || taskType === 'auto_category') {
       selectedModel = 'gemini-3.1-flash-lite';
-      systemInstruction = 'You are a rapid text editor. Fix grammar, improve flow, and return clean polished text quickly.';
-    } else if (taskType === 'auto_category') {
-      selectedModel = 'gemini-3.1-flash-lite';
-      systemInstruction = 'Categorize the text into one of: Work, Study, Ideas, Research, Personal, Coding, Life. Output ONLY the single category name.';
+      systemInstruction = 'You are a rapid text editor. Fix grammar, improve flow, categorize input, and return clean polished text instantly.';
     }
 
     const response = await ai.models.generateContent({

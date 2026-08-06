@@ -137,7 +137,7 @@ export interface FreeAIModel {
   providerLabel: string;
   description: string;
   contextWindow: string;
-  speed: 'Ultra Fast' | 'Fast' | 'Balanced';
+  speed: 'Ultra Fast' | 'Fast' | 'Balanced' | 'Instant';
   isFree: true;
   badge?: string;
   supportsImage?: boolean;

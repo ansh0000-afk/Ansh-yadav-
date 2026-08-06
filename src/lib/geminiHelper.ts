@@ -3,7 +3,7 @@
  */
 
 export interface AnalyzeRequest {
-  taskType: 'complex_reasoning' | 'code_analysis' | 'summarize' | 'fast_edit' | 'auto_category';
+  taskType: 'complex_reasoning' | 'code_analysis' | 'summarize' | 'fast_edit' | 'auto_category' | 'general_task';
   text: string;
   context?: string;
 }

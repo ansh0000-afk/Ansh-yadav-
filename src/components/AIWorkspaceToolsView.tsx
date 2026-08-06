@@ -135,7 +135,7 @@ export const AIWorkspaceToolsView: React.FC<AIWorkspaceToolsViewProps> = ({
     try {
       setIsGeneratingMindMap(true);
       const prompt = `Generate a structured hierarchical JSON mind map for topic: "${mindMapTopic}". Return array of 4 key subtopics, each having 2 children. Format strict JSON string array.`;
-      const res = await analyzeContent({ taskType: 'fast_edit', text: prompt });
+      const res = await analyzeContent({ taskType: 'complex_reasoning', text: prompt });
 
       // Create dynamic nodes
       setMindMapRoot({
@@ -193,7 +193,7 @@ export const AIWorkspaceToolsView: React.FC<AIWorkspaceToolsViewProps> = ({
       else if (codeTask === 'explain') prompt = `Explain line-by-line in plain terms this code:\n${codeInput}`;
       else prompt = `Find bugs, memory issues, and provide corrected code for:\n${codeInput}`;
 
-      const res = await analyzeContent({ taskType: 'fast_edit', text: prompt });
+      const res = await analyzeContent({ taskType: 'code_analysis', text: prompt });
       setCodeOutput(res.result || 'Code response ready.');
     } catch (e) {
       setCodeOutput('Error executing code task.');
@@ -207,7 +207,7 @@ export const AIWorkspaceToolsView: React.FC<AIWorkspaceToolsViewProps> = ({
     try {
       setIsSummarizing(true);
       const prompt = `Provide a concise bulleted summary and action points for this ${summarizerType.toUpperCase()} content/URL:\n${summarizerInput}`;
-      const res = await analyzeContent({ taskType: 'fast_edit', text: prompt });
+      const res = await analyzeContent({ taskType: 'summarize', text: prompt });
       setSummarizerOutput(res.result || 'Summary generated.');
     } catch (e) {
       setSummarizerOutput('Failed to summarize link or content.');
