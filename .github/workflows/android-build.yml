@@ -38,13 +38,13 @@ jobs:
         run: |
           npx cap sync android
 
-      - name: Make gradlew executable & Verify Wrapper
+      - name: Setup Gradle Wrapper & Executable
         run: |
           chmod +x android/gradlew
-          if [ ! -s android/gradle/wrapper/gradle-wrapper.jar ] || ! unzip -t android/gradle/wrapper/gradle-wrapper.jar > /dev/null 2>&1; then
-            echo "Downloading official Gradle wrapper JAR..."
-            curl -sSL https://raw.githubusercontent.com/gradle/gradle/v8.11.1/gradle/wrapper/gradle-wrapper.jar -o android/gradle/wrapper/gradle-wrapper.jar
-          fi
+          echo "Ensuring clean official Gradle Wrapper JAR..."
+          mkdir -p android/gradle/wrapper
+          curl -sSL "https://raw.githubusercontent.com/gradle/gradle/v8.11.1/gradle/wrapper/gradle-wrapper.jar" -o android/gradle/wrapper/gradle-wrapper.jar
+          java -jar android/gradle/wrapper/gradle-wrapper.jar --version
 
       - name: Build Debug APK
         run: |
