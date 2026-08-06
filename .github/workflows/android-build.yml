@@ -20,35 +20,29 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Set up Java JDK 21
+      - name: Set up Java JDK
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 21
+          java-version: '21'
 
       - name: Install Dependencies
-        run: |
-          npm install
+        run: npm install
 
       - name: Build Web App
         env:
           GEMINI_API_KEY: ${{ secrets.MY_GEMINI_API_KEY }}
-        run: |
-          npm run build
+        run: npm run build
 
       - name: Add and Sync Capacitor Android
-        env:
-          GEMINI_API_KEY: ${{ secrets.MY_GEMINI_API_KEY }}
         run: |
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
           npx cap sync android
 
-      - name: Setup Gradle Wrapper & Executable
-        run: |
-          chmod +x android/gradlew
-          echo "Ensuring clean official Gradle Wrapper JAR..."
-          mkdir -p android/gradle/wrapper
-          curl -sSL "https://raw.githubusercontent.com/gradle/gradle/v8.11.1/gradle/wrapper/gradle-wrapper.jar" -o android/gradle/wrapper/gradle-wrapper.jar
-          java -jar android/gradle/wrapper/gradle-wrapper.jar --version
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
 
       - name: Build Debug APK
         run: |
