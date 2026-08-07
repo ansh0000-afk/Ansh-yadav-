@@ -26,6 +26,11 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Fix Corrupt Gradle Wrapper Jar
+        run: |
+          mkdir -p android/gradle/wrapper
+          curl -sL https://raw.githubusercontent.com/gradle/gradle/v8.11.1/gradle/wrapper/gradle-wrapper.jar -o android/gradle/wrapper/gradle-wrapper.jar
+
       - name: Install Dependencies
         run: npm install
 
