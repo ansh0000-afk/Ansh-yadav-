@@ -74,7 +74,6 @@ export default function App() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   
-  // Calendar Events
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([
     {
       id: 'cal-1',
@@ -94,17 +93,13 @@ export default function App() {
     }
   ]);
   
-  // User Profile
   const [userProfile, setUserProfile] = useState<UserProfile>(() => memoryManager.getProfile());
-
-  // Personas
   const [personas] = useState<AgentPersona[]>(DEFAULT_PERSONAS);
   const [activePersona, setActivePersona] = useState<AgentPersona>(() => {
     const saved = localStorage.getItem('agent_active_persona_id');
     return DEFAULT_PERSONAS.find(p => p.id === saved) || DEFAULT_PERSONAS[0];
   });
 
-  // Settings
   const [settings, setSettings] = useState<AgentSettings>(() => {
     const saved = localStorage.getItem('agent_settings');
     if (saved) {
@@ -121,11 +116,10 @@ export default function App() {
         pitch: 1.0,
         autoSpeak: false
       },
-      userCustomInstructions: 'Always reply in simple Hinglish step by step. Help me with Class 12 Commerce studies (Accountancy, Business Studies, Economics, English, Hindi, Computer Applications, Entrepreneurship, Physical Education) in a friendly and accurate manner.'
+      userCustomInstructions: 'Always reply in simple Hinglish step by step. Help me with Class 12 Commerce studies in a friendly and accurate manner.'
     };
   });
 
-  // Chat History Sessions State
   const [sessions, setSessions] = useState<ChatSession[]>(() => {
     const saved = localStorage.getItem('alpha_chat_sessions');
     if (saved) {
@@ -142,11 +136,9 @@ export default function App() {
     return saved && sessions.some(s => s.id === saved) ? saved : sessions[0]?.id || DEFAULT_SESSION.id;
   });
 
-  // Derived messages for current active session
   const activeSession = sessions.find(s => s.id === activeSessionId) || sessions[0] || DEFAULT_SESSION;
   const messages = activeSession ? activeSession.messages : [];
 
-  // Tasks State
   const [tasks, setTasks] = useState<Task[]>(() => {
     const saved = localStorage.getItem('agent_tasks');
     if (saved) {
@@ -155,7 +147,6 @@ export default function App() {
     return INITIAL_TASKS;
   });
 
-  // Notes State
   const [notes, setNotes] = useState<KnowledgeNote[]>(() => {
     const saved = localStorage.getItem('agent_notes');
     if (saved) {
@@ -167,16 +158,13 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Splash Screen State
   const [showSplash, setShowSplash] = useState<boolean>(() => {
     return !sessionStorage.getItem('alpha_splash_shown');
   });
 
-  // Window Focus / Privacy Blur State
   const [isWindowBlurred, setIsWindowBlurred] = useState<boolean>(false);
   const [screenshotToast, setScreenshotToast] = useState<boolean>(false);
 
-  // Screenshot Prevention Listener
   useEffect(() => {
     const handleBlur = () => setIsWindowBlurred(true);
     const handleFocus = () => setIsWindowBlurred(false);
@@ -201,7 +189,6 @@ export default function App() {
     setShowSplash(false);
   };
 
-  // App Lock State
   const [isAppLocked, setIsAppLocked] = useState<boolean>(() => {
     const savedSettings = localStorage.getItem('agent_settings');
     if (savedSettings) {
@@ -223,14 +210,11 @@ export default function App() {
   }>({ isOpen: false, mode: 'unlock-app' });
 
   const [unlockedSessionIds, setUnlockedSessionIds] = useState<string[]>([]);
-
-  // Smart Tools & Onboarding Modals State
   const [isPromptLibraryOpen, setIsPromptLibraryOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState<boolean>(() => {
     return !localStorage.getItem('alpha_onboarding_completed');
   });
 
-  // Tab visibility change (Auto-lock on background / tab switch)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden && settings.appLock?.isEnabled && settings.appLock?.lockOnBackground) {
@@ -241,14 +225,13 @@ export default function App() {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [settings.appLock?.isEnabled, settings.appLock?.lockOnBackground]);
 
-  // Auto lock inactivity timer
   useEffect(() => {
     if (!settings.appLock?.isEnabled || settings.appLock?.autoLockTimeout === undefined || settings.appLock.autoLockTimeout < 0) {
       return;
     }
 
     const timeoutMs = settings.appLock.autoLockTimeout * 60 * 1000;
-    if (timeoutMs === 0) return; // Immediate on blur is handled by visibilitychange
+    if (timeoutMs === 0) return;
 
     let timer: NodeJS.Timeout;
 
@@ -269,12 +252,10 @@ export default function App() {
     };
   }, [settings.appLock?.isEnabled, settings.appLock?.autoLockTimeout]);
 
-  // Sync to local storage
   useEffect(() => {
     localStorage.setItem('agent_active_persona_id', activePersona.id);
   }, [activePersona]);
 
-  // Firebase Auth Listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
@@ -319,7 +300,6 @@ export default function App() {
     localStorage.setItem('agent_notes', JSON.stringify(notes));
   }, [notes]);
 
-  // Session Handlers
   const handleNewSession = () => {
     const newSession: ChatSession = {
       id: `session-${Date.now()}`,
@@ -442,11 +422,9 @@ export default function App() {
     setSessions(prev => prev.map(s => s.id === id ? { ...s, title: newTitle } : s));
   };
 
-  // Update messages in current active session
   const updateSessionMessages = (newMessages: ChatMessage[]) => {
     setSessions(prev => prev.map(s => {
       if (s.id === activeSessionId) {
-        // Auto generate session title from first user message if still default
         let newTitle = s.title;
         if ((s.title === 'Welcome to Class 12 Commerce AI' || s.title === 'New Conversation') && newMessages.length > 0) {
           const firstUserMsg = newMessages.find(m => m.role === 'user');
@@ -465,7 +443,6 @@ export default function App() {
     }));
   };
 
-  // Handle Send Message
   const handleSendMessage = async (content: string, attachedImage?: string, attachedDoc?: DocumentAttachment) => {
     let finalContent = content;
     if (attachedDoc && attachedDoc.textContent) {
@@ -475,7 +452,7 @@ export default function App() {
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
-      content: content, // Display clean input
+      content: content,
       attachedImage,
       attachedDoc,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -485,11 +462,9 @@ export default function App() {
     updateSessionMessages(updatedMessages);
     setIsLoading(true);
 
-    // Setup AbortController for cancel capability
     abortControllerRef.current = new AbortController();
 
     try {
-      // Build prompt list with document content included in API call
       const apiMessages = updatedMessages.map(m => {
         if (m.id === userMsg.id && attachedDoc) {
           return { ...m, content: finalContent };
@@ -513,16 +488,13 @@ export default function App() {
         })
       });
 
-      // 1. First check if response is OK (200)
       if (!res.ok) {
         const errorText = await res.text();
-        throw new Error(`Server call failed with status ${res.status}: ${errorText.slice(0, 100)}`);
+        throw new Error(`Server status ${res.status}: ${errorText.slice(0, 100)}`);
       }
 
-      // 2. Safe JSON Parsing
       const data = await res.json();
 
-      // Handle tool executions (Tasks & Notes creation)
       if (data.toolExecutions && Array.isArray(data.toolExecutions)) {
         for (const tool of data.toolExecutions) {
           if (tool.name === 'create_task' && tool.args?.title) {
@@ -549,4 +521,27 @@ export default function App() {
         }
       }
 
-      const assistantMsg: ChatMessage = 
+      const assistantMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: data.text || 'Action completed.',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        groundingSources: data.groundingSources,
+        toolExecutions: data.toolExecutions,
+        imageUrl: data.generatedImageUrl
+      };
+
+      updateSessionMessages([...updatedMessages, assistantMsg]);
+    } catch (err: any) {
+      if (err.name === 'AbortError') return;
+      console.error('Send message error:', err);
+      const isQuota = err.message?.includes('quota') || err.message?.includes('RESOURCE_EXHAUSTED') || err.message?.includes('429');
+      const errorMsgText = isQuota
+        ? '⚠️ **Rate Limit Reached**: Gemini API limit reached. Please wait 30 seconds and retry.'
+        : `⚠️ **Server Note**: Request issue (${err.message || 'Network issue'}). Please try again.`;
+
+      const errorMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: errorMsgText,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
