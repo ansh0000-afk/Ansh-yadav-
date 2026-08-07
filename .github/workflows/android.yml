@@ -21,7 +21,7 @@ jobs:
           cache: npm
 
       - name: Set up Java JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -34,11 +34,6 @@ jobs:
 
       - name: Add and Sync Capacitor Android
         run: npx cap sync android
-
-      - name: Generate Fresh Gradle Wrapper
-        run: |
-          cd android
-          gradle wrapper --gradle-version 8.11.1
 
       - name: Build Android APK
         run: |
