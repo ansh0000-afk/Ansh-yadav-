@@ -26,7 +26,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Gradle
+      - name: Setup Gradle Environment
         uses: gradle/actions/setup-gradle@v3
 
       - name: Install Dependencies
@@ -38,13 +38,10 @@ jobs:
       - name: Add and Sync Capacitor Android
         run: npx cap sync android
 
-      - name: Make Gradle Executable
-        run: chmod +x android/gradlew
-
       - name: Build Debug APK
         run: |
           cd android
-          ./gradlew assembleDebug --stacktrace
+          gradle assembleDebug --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
