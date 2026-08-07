@@ -35,6 +35,11 @@ jobs:
       - name: Add and Sync Capacitor Android
         run: npx cap sync android
 
+      - name: Setup Gradle Wrapper
+        run: |
+          cd android
+          gradle wrapper --gradle-version 8.2.1
+
       - name: Make Gradle Executable
         run: chmod +x android/gradlew
 
