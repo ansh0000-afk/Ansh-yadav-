@@ -545,3 +545,331 @@ export default function App() {
         role: 'assistant',
         content: errorMsgText,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      updateSessionMessages([...updatedMessages, errorMsg]);
+    } finally {
+      setIsLoading(false);
+      abortControllerRef.current = null;
+    }
+  };
+
+  const handleStopGenerating = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddTask = (newTask: Omit<Task, 'id' | 'createdAt'>) => {
+    const task: Task = {
+      ...newTask,
+      id: `t-${Date.now()}`,
+      createdAt: new Date().toISOString()
+    };
+    setTasks(prev => [task, ...prev]);
+  };
+
+  const handleUpdateTaskStatus = (id: string, status: Task['status']) => {
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, status } : t));
+  };
+
+  const handleDeleteTask = (id: string) => {
+    setTasks(prev => prev.filter(t => t.id !== id));
+  };
+
+  const handleAskAgentAboutTask = (taskTitle: string) => {
+    setCurrentView('chat');
+    handleSendMessage(`Help me execute and complete this task step by step: "${taskTitle}"`);
+  };
+
+  const handleAddNote = (newNote: Omit<KnowledgeNote, 'id' | 'createdAt'>) => {
+    const note: KnowledgeNote = {
+      ...newNote,
+      id: `n-${Date.now()}`,
+      createdAt: new Date().toISOString()
+    };
+    setNotes(prev => [note, ...prev]);
+  };
+
+  const handleDeleteNote = (id: string) => {
+    setNotes(prev => prev.filter(n => n.id !== id));
+  };
+
+  const handleAskAgentAboutNote = (noteTitle: string) => {
+    setCurrentView('chat');
+    handleSendMessage(`Provide additional insights and revision notes for: "${noteTitle}"`);
+  };
+
+  const handleResetData = () => {
+    setTasks([]);
+    setNotes([]);
+    setSessions([DEFAULT_SESSION]);
+    setActiveSessionId(DEFAULT_SESSION.id);
+    localStorage.clear();
+  };
+
+  return (
+    <ErrorBoundary>
+      <div className="flex h-screen w-screen overflow-hidden bg-slate-950 font-sans antialiased text-slate-100 relative">
+        
+        <AnimatePresence>
+          {showSplash && (
+            <SplashScreen onComplete={handleSplashComplete} />
+          )}
+        </AnimatePresence>
+
+        {isWindowBlurred && settings.appLock?.isEnabled && (
+          <div className="fixed inset-0 z-100 bg-slate-950/90 backdrop-blur-3xl flex flex-col items-center justify-center space-y-3 pointer-events-auto select-none p-6 text-center">
+            <div className="p-4 rounded-3xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 animate-pulse">
+              <EyeOff className="w-10 h-10" />
+            </div>
+            <h2 className="text-lg font-bold text-white">Protected Workspace View</h2>
+            <p className="text-xs text-slate-400 max-w-xs">Screen content hidden to prevent unauthorized capture.</p>
+          </div>
+        )}
+
+        <AnimatePresence>
+          {screenshotToast && (
+            <motion.div
+              initial={{ opacity: 0, y: -20, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.9 }}
+              className="fixed top-4 left-1/2 -translate-x-1/2 z-100 bg-rose-950/90 border border-rose-500/40 text-rose-200 px-4 py-2.5 rounded-2xl shadow-2xl backdrop-blur-xl flex items-center gap-2.5 text-xs font-semibold"
+            >
+              <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0 animate-bounce" />
+              <span>Screenshot / Screen Recording Detected — Protected Content</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {isMobileSidebarOpen && (
+          <div
+            onClick={() => setIsMobileSidebarOpen(false)}
+            className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-20 md:hidden"
+          />
+        )}
+
+        <Sidebar
+          currentView={currentView}
+          setCurrentView={setCurrentView}
+          activePersona={activePersona}
+          personas={personas}
+          onSelectPersona={setActivePersona}
+          taskCount={tasks.filter(t => t.status !== 'completed').length}
+          noteCount={notes.length}
+          enableSearch={settings.enableSearch}
+          setEnableSearch={(enabled) => setSettings(s => ({ ...s, enableSearch: enabled }))}
+          sessions={sessions}
+          activeSessionId={activeSessionId}
+          onNewSession={handleNewSession}
+          onSelectSession={handleSelectSession}
+          onDeleteSession={handleDeleteSession}
+          onPinSession={handlePinSession}
+          onFavoriteSession={handleFavoriteSession}
+          onArchiveSession={handleArchiveSession}
+          onDuplicateSession={handleDuplicateSession}
+          onToggleLockSession={handleToggleLockSession}
+          onRenameSession={handleRenameSession}
+          userProfile={userProfile}
+          onOpenAuth={() => setIsAuthOpen(true)}
+          isOpenMobile={isMobileSidebarOpen}
+          onCloseMobile={() => setIsMobileSidebarOpen(false)}
+          onOpenVoiceModal={() => setIsVoiceModalOpen(true)}
+          onOpenPromptLibrary={() => setIsPromptLibraryOpen(true)}
+          onOpenOnboarding={() => setIsOnboardingOpen(true)}
+        />
+
+        <main className="flex-1 flex flex-col min-w-0 overflow-hidden pb-16 md:pb-0">
+          {currentView === 'dashboard' && (
+            <DashboardView
+              userProfile={userProfile}
+              sessions={sessions}
+              tasks={tasks}
+              notes={notes}
+              calendarEvents={calendarEvents}
+              onNavigateView={(view) => setCurrentView(view)}
+              onOpenPromptLibrary={() => setIsPromptLibraryOpen(true)}
+              onQuickStartChat={(promptText) => {
+                setCurrentView('chat');
+                handleSendMessage(promptText);
+              }}
+              onAddTask={handleAddTask}
+              onAddCalendarEvent={(evt) => {
+                setCalendarEvents(prev => [...prev, { ...evt, id: `cal-${Date.now()}`, createdAt: new Date().toISOString() }]);
+              }}
+            />
+          )}
+
+          {currentView === 'commerce' && (
+            <CommerceStudyHubView
+              onAskAgentAboutTopic={(topic) => {
+                setCurrentView('chat');
+                handleSendMessage(`Explain this Class 12 Commerce concept in detail with examples and step-by-step notes: ${topic}`);
+              }}
+            />
+          )}
+
+          {currentView === 'tools' && (
+            <AIWorkspaceToolsView
+              onSendMessageToChat={(promptText) => {
+                setCurrentView('chat');
+                handleSendMessage(promptText);
+              }}
+            />
+          )}
+
+          {currentView === 'chat' && (
+            <ChatView
+              messages={messages}
+              onSendMessage={handleSendMessage}
+              activePersona={activePersona}
+              personas={DEFAULT_PERSONAS}
+              onSelectPersona={setActivePersona}
+              activeSession={activeSession}
+              enableSearch={settings.enableSearch}
+              setEnableSearch={(enabled) => setSettings(s => ({ ...s, enableSearch: enabled }))}
+              onClearChat={() => updateSessionMessages([])}
+              isLoading={isLoading}
+              onStopGenerating={handleStopGenerating}
+              tasks={tasks}
+              notes={notes}
+              settings={settings}
+              onUpdateSettings={(updates) => setSettings(s => ({ ...s, ...updates }))}
+              onOpenMobileMenu={() => setIsMobileSidebarOpen(true)}
+              onOpenVoiceModal={() => setIsVoiceModalOpen(true)}
+              onOpenPromptLibrary={() => setIsPromptLibraryOpen(true)}
+              onRenameSession={handleRenameSession}
+              onDeleteSession={handleDeleteSession}
+              onDuplicateSession={handleDuplicateSession}
+              onPinSession={handlePinSession}
+              onFavoriteSession={handleFavoriteSession}
+              onArchiveSession={handleArchiveSession}
+            />
+          )}
+
+          {currentView === 'tasks' && (
+            <TaskBoardView
+              tasks={tasks}
+              onAddTask={handleAddTask}
+              onUpdateTaskStatus={handleUpdateTaskStatus}
+              onDeleteTask={handleDeleteTask}
+              onAskAgentAboutTask={handleAskAgentAboutTask}
+            />
+          )}
+
+          {currentView === 'notes' && (
+            <KnowledgeBaseView
+              notes={notes}
+              onAddNote={handleAddNote}
+              onDeleteNote={handleDeleteNote}
+              onAskAgentAboutNote={handleAskAgentAboutNote}
+            />
+          )}
+
+          {currentView === 'personas' && (
+            <PersonaSelectorView
+              personas={personas}
+              activePersona={activePersona}
+              onSelectPersona={setActivePersona}
+              onSwitchToChat={() => setCurrentView('chat')}
+            />
+          )}
+
+          {currentView === 'settings' && (
+            <SettingsModal
+              settings={settings}
+              userProfile={userProfile}
+              sessions={sessions}
+              onSaveSettings={(newSettings) => setSettings(s => ({ ...s, ...newSettings }))}
+              onUpdateProfile={(updated) => {
+                memoryManager.saveProfile(updated);
+                setUserProfile(updated);
+              }}
+              onResetData={handleResetData}
+              onOpenPinModal={(mode) => setPinModalState({ isOpen: true, mode })}
+              onToggleLockSession={handleToggleLockSession}
+            />
+          )}
+        </main>
+
+        <BottomNavigation
+          activeView={currentView === 'notes' ? 'tasks' : currentView}
+          onSelectView={(view) => {
+            if (view === 'security') {
+              setCurrentView('settings');
+            } else {
+              setCurrentView(view as any);
+            }
+          }}
+          activeSessionTitle={activeSession.title}
+          isAppLockEnabled={settings.appLock?.isEnabled}
+          taskCount={tasks.filter(t => t.status !== 'completed').length}
+        />
+
+        {isAppLocked && settings.appLock?.isEnabled && (
+          <AppLockModal
+            mode="unlock-app"
+            appLockSettings={settings.appLock}
+            onSuccess={() => setIsAppLocked(false)}
+            onResetAppLock={handleResetAppLock}
+          />
+        )}
+
+        {pinModalState.isOpen && (
+          <AppLockModal
+            mode={pinModalState.mode}
+            targetChatTitle={pinModalState.targetChatTitle}
+            appLockSettings={settings.appLock}
+            onSuccess={handlePinModalSuccess}
+            onCancel={() => setPinModalState(prev => ({ ...prev, isOpen: false }))}
+            onResetAppLock={handleResetAppLock}
+          />
+        )}
+
+        <AuthModal
+          isOpen={isAuthOpen}
+          userProfile={userProfile}
+          onUpdateProfile={(updated) => {
+            memoryManager.saveProfile(updated);
+            setUserProfile(updated);
+          }}
+          onClose={() => setIsAuthOpen(false)}
+        />
+
+        <VoiceConversationModal
+          isOpen={isVoiceModalOpen}
+          onClose={() => setIsVoiceModalOpen(false)}
+          activePersona={activePersona}
+          settings={settings}
+          onSendMessageToChat={handleSendMessage}
+        />
+
+        <SmartPromptLibraryModal
+          isOpen={isPromptLibraryOpen}
+          onClose={() => setIsPromptLibraryOpen(false)}
+          onSelectPrompt={(promptText) => {
+            if (currentView !== 'chat') setCurrentView('chat');
+            handleSendMessage(promptText);
+          }}
+        />
+
+        <OnboardingTutorialModal
+          isOpen={isOnboardingOpen}
+          onClose={() => {
+            localStorage.setItem('alpha_onboarding_completed', 'true');
+            setIsOnboardingOpen(false);
+          }}
+        />
+
+        <FloatingAssistantWidget
+          onOpenVoiceModal={() => setIsVoiceModalOpen(true)}
+          onOpenPromptLibrary={() => setIsPromptLibraryOpen(true)}
+          onSendToMainChat={(promptText) => {
+            if (currentView !== 'chat') setCurrentView('chat');
+            handleSendMessage(promptText);
+          }}
+        />
+      </div>
+    </ErrorBoundary>
+  );
+}
