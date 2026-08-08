@@ -1,3 +1,5 @@
+import { apiFetch } from './apiClient';
+
 export interface SecurityStatus {
   configured: boolean;
   activeSource: 'request_header' | 'encrypted_vault' | 'environment_variable' | 'missing';
@@ -16,9 +18,9 @@ export class SecurityService {
    */
   public static async getStatus(): Promise<SecurityStatus | null> {
     try {
-      const res = await fetch('/api/security/status');
+      const res = await apiFetch<SecurityStatus>('/api/security/status');
       if (!res.ok) return null;
-      return await res.json();
+      return res.data;
     } catch (err) {
       console.error('Failed to fetch security status:', err);
       return null;
@@ -30,12 +32,12 @@ export class SecurityService {
    */
   public static async validateKey(apiKey: string): Promise<{ valid: boolean; message: string }> {
     try {
-      const res = await fetch('/api/security/validate', {
+      const res = await apiFetch<{ valid: boolean; message: string }>('/api/security/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ apiKey })
       });
-      return await res.json();
+      return res.data || { valid: false, message: res.error || 'Validation request failed' };
     } catch (err: any) {
       return { valid: false, message: err.message || 'Validation request failed' };
     }
@@ -46,12 +48,12 @@ export class SecurityService {
    */
   public static async updateKey(apiKey: string): Promise<{ success: boolean; message: string; status?: SecurityStatus }> {
     try {
-      const res = await fetch('/api/security/update-key', {
+      const res = await apiFetch<{ success: boolean; message: string; status?: SecurityStatus }>('/api/security/update-key', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ apiKey })
       });
-      return await res.json();
+      return res.data || { success: false, message: res.error || 'Update request failed' };
     } catch (err: any) {
       return { success: false, message: err.message || 'Update request failed' };
     }
@@ -62,11 +64,11 @@ export class SecurityService {
    */
   public static async resetKey(): Promise<{ success: boolean; message: string; status?: SecurityStatus }> {
     try {
-      const res = await fetch('/api/security/reset-key', {
+      const res = await apiFetch<{ success: boolean; message: string; status?: SecurityStatus }>('/api/security/reset-key', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
-      return await res.json();
+      return res.data || { success: false, message: res.error || 'Reset request failed' };
     } catch (err: any) {
       return { success: false, message: err.message || 'Reset request failed' };
     }

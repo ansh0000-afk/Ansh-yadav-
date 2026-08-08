@@ -251,12 +251,15 @@ When using tools, also summarize what action was taken in friendly text.`;
       );
     } catch (apiErr: any) {
       console.error('All Multi-Model AI attempts failed:', apiErr);
-      return res.json({
+      const isQuota = String(apiErr?.message || '').includes('429') || String(apiErr?.message || '').includes('RESOURCE_EXHAUSTED');
+      return res.status(isQuota ? 429 : 500).json({
+        error: isQuota ? 'Rate limit exceeded' : 'AI service unavailable',
+        isRateLimit: isQuota,
         text: '⚠️ **All Free AI Models Busy / Rate Limited**: Free tier quota limits reach ho gayi hain. Kripya 30-60 seconds baad retry karein ya custom API key configure karein.',
         groundingSources: [],
         toolExecutions: [],
         generatedImageUrl: undefined,
-        modelUsed: settings?.selectedModel || 'gemini-3.6-flash',
+        modelUsed: settings?.selectedModel || 'gemini-3.5-flash',
         wasFallback: true
       });
     }
@@ -271,7 +274,8 @@ When using tools, also summarize what action was taken in friendly text.`;
     });
   } catch (err: any) {
     console.error('Chat API Error:', err);
-    res.json({
+    res.status(500).json({
+      error: err.message || 'Server error',
       text: '⚠️ **Service Busy**: Kripya ek baar retry karein.',
       groundingSources: [],
       toolExecutions: []
@@ -289,7 +293,7 @@ app.post('/api/analyze', async (req, res) => {
       return res.status(400).json({ error: 'Text content is required for analysis' });
     }
 
-    let selectedModel = 'gemini-3.6-flash';
+    let selectedModel = 'gemini-3.5-flash';
     let systemInstruction = 'You are Alpha AI Intelligence Engine.';
 
     if (taskType === 'complex_reasoning' || taskType === 'code_analysis') {
@@ -318,12 +322,13 @@ app.post('/api/analyze', async (req, res) => {
     try {
       const ai = getGenAI(req);
       const fallbackRes = await ai.models.generateContent({
-        model: 'gemini-3.6-flash',
+        model: 'gemini-3.5-flash',
         contents: req.body.text || '',
       });
-      res.json({ result: fallbackRes.text || '', modelUsed: 'gemini-3.6-flash' });
+      res.json({ result: fallbackRes.text || '', modelUsed: 'gemini-3.5-flash' });
     } catch (fbErr: any) {
-      res.status(500).json({ error: err.message || 'Analysis failed' });
+      const isQuota = String(fbErr?.message || '').includes('429') || String(fbErr?.message || '').includes('RESOURCE_EXHAUSTED');
+      res.status(isQuota ? 429 : 500).json({ error: fbErr.message || err.message || 'Analysis failed', isRateLimit: isQuota });
     }
   }
 });
@@ -422,39 +427,3 @@ async function startServer() {
 }
 
 startServer();
-app.post('/api/chat', async (req, res) => {
-  try {
-    const { messages, persona, settings, userMemory, attachedImage } = req.body;
-    
-    const ai = getGenAI(req);
-    const modelName = 'gemini-2.5-flash';
-    
-    const chatHistory = messages.map((m: any) => ({
-      role: m.role === 'user' ? 'user' : 'model',
-      parts: [{ text: m.content }]
-    }));
-
-    const chat = ai.getGenerativeModel({ 
-      model: modelName,
-      systemInstruction: persona?.systemPrompt || settings?.userCustomInstructions
-    }).startChat({
-      history: chatHistory.slice(0, -1)
-    });
-
-    const lastMessage = messages[messages.length - 1]?.content || 'Hello';
-    const result = await chat.sendMessage(lastMessage);
-    const responseText = result.response.text();
-
-    res.json({
-      text: responseText,
-      groundingSources: [],
-      toolExecutions: []
-    });
-
-  } catch (error: any) {
-    console.error('API Chat Error:', error);
-    res.status(500).json({ 
-      error: error.message || 'Internal Server Error' 
-    });
-  }
-});

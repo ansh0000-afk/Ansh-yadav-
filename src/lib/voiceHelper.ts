@@ -1,3 +1,5 @@
+import { apiFetch } from './apiClient';
+
 export interface VoiceOption {
   name: string;
   lang: string;
@@ -155,17 +157,17 @@ export class VoiceController {
     if (!cleanText) return null;
 
     try {
-      const response = await fetch('/api/tts', {
+      const response = await apiFetch<{ audioData?: string }>('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: cleanText, voiceName })
       });
 
-      if (!response.ok) {
-        throw new Error('TTS response error');
+      if (!response.ok || !response.data?.audioData) {
+        throw new Error(response.error || 'TTS response error');
       }
 
-      const data = await response.json();
+      const data = response.data;
       if (data.audioData) {
         const audio = new Audio(data.audioData);
         this.isSpeaking = true;

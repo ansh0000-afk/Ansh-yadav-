@@ -1,3 +1,5 @@
+import { apiFetch } from './apiClient';
+
 /**
  * Helper client service to call server-side Gemini endpoints.
  */
@@ -17,54 +19,50 @@ export interface AnalyzeResponse {
  * Perform content analysis, summarization, code editing or categorization using Gemini.
  */
 export async function analyzeContent(req: AnalyzeRequest): Promise<AnalyzeResponse> {
-  const response = await fetch('/api/analyze', {
+  const response = await apiFetch<AnalyzeResponse>('/api/analyze', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(req)
   });
 
   if (!response.ok) {
-    const errData = await response.json().catch(() => ({}));
-    throw new Error(errData.error || 'Failed to analyze content');
+    throw new Error(response.error || 'Failed to analyze content');
   }
 
-  return response.json();
+  return response.data;
 }
 
 /**
  * Generate a visual graphic or image prompt using Gemini Image generation.
  */
 export async function generateImage(prompt: string, aspectRatio: string = '1:1'): Promise<string> {
-  const response = await fetch('/api/generate-image', {
+  const response = await apiFetch<{ imageUrl: string }>('/api/generate-image', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ prompt, aspectRatio })
   });
 
-  if (!response.ok) {
-    const errData = await response.json().catch(() => ({}));
-    throw new Error(errData.error || 'Failed to generate image');
+  if (!response.ok || !response.data?.imageUrl) {
+    throw new Error(response.error || 'Failed to generate image');
   }
 
-  const data = await response.json();
-  return data.imageUrl;
+  return response.data.imageUrl;
 }
 
 /**
  * Request Text-To-Speech audio output from Gemini TTS model.
  */
 export async function generateGeminiSpeech(text: string, voiceName: string = 'Kore'): Promise<string> {
-  const response = await fetch('/api/tts', {
+  const response = await apiFetch<{ audioData: string }>('/api/tts', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text, voiceName })
   });
 
-  if (!response.ok) {
-    const errData = await response.json().catch(() => ({}));
-    throw new Error(errData.error || 'Failed to generate speech');
+  if (!response.ok || !response.data?.audioData) {
+    throw new Error(response.error || 'Failed to generate speech');
   }
 
-  const data = await response.json();
-  return data.audioData;
+  return response.data.audioData;
 }
+

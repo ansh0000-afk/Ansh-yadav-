@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AgentPersona, AgentSettings } from '../types';
 import { voiceController } from '../lib/voiceHelper';
+import { apiFetch } from '../lib/apiClient';
 import { 
   Mic, 
   MicOff, 
@@ -99,17 +100,17 @@ export const VoiceConversationModal: React.FC<VoiceConversationModalProps> = ({
 
     try {
       // Call chat API to get AI response
-      const res = await fetch('/api/chat', {
+      const res = await apiFetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: [{ role: 'user', content: speechText }],
           persona: activePersona,
-          settings: { ...settings, aiModel: 'gemini-3.1-flash-live-preview' }
+          settings: { ...settings, aiModel: 'gemini-3.5-flash' }
         })
       });
 
-      const data = await res.json();
+      const data = res.data || {};
       const aiReply = data.text || 'I understood your query.';
       setAiResponseText(aiReply);
       setLiveLog(prev => [...prev, { role: 'assistant', text: aiReply }]);

@@ -259,18 +259,39 @@ async function callGemini(
     config.toolConfig = { includeServerSideToolInvocations: true };
   }
 
-  const res = await ai.models.generateContent({
-    model: modelId,
-    contents,
-    config
-  });
+  let attempt = 0;
+  const maxRetries = 3;
+  let delayMs = 1000;
 
-  return {
-    text: res.text || '',
-    functionCalls: res.functionCalls || [],
-    candidates: res.candidates || [],
-    modelUsed: modelId
-  };
+  while (true) {
+    attempt++;
+    try {
+      const res = await ai.models.generateContent({
+        model: modelId,
+        contents,
+        config
+      });
+
+      return {
+        text: res.text || '',
+        functionCalls: res.functionCalls || [],
+        candidates: res.candidates || [],
+        modelUsed: modelId
+      };
+    } catch (err: any) {
+      const errMsg = err?.message || String(err);
+      const isRateLimit = errMsg.includes('429') || errMsg.includes('RESOURCE_EXHAUSTED') || errMsg.includes('Quota exceeded') || err?.status === 429;
+
+      if (isRateLimit && attempt <= maxRetries) {
+        console.warn(`[Gemini API] 429 Rate limit hit for ${modelId}. Retry attempt ${attempt}/${maxRetries} after ${delayMs}ms...`);
+        await delay(delayMs);
+        delayMs *= 2; // exponential backoff
+        continue;
+      }
+
+      throw err;
+    }
+  }
 }
 
 /**
@@ -291,7 +312,7 @@ export async function executeMultiModelRequest(
   modelUsed: string;
   wasFallback: boolean;
 }> {
-  const primaryModel = settings?.selectedModel || settings?.aiModel || 'gemini-3.6-flash';
+  const primaryModel = settings?.selectedModel || settings?.aiModel || 'gemini-3.5-flash';
   const autoFallback = settings?.autoFallback !== false;
 
   // Define candidate sequence based on user preference
@@ -304,6 +325,7 @@ export async function executeMultiModelRequest(
       'meta-llama/llama-3.3-70b-instruct:free',
       'deepseek/deepseek-r1:free',
       'qwen/qwen-2.5-coder-32b-instruct:free',
+      'gemini-3.5-flash',
       'gemini-3.6-flash',
       'gemini-2.5-flash'
     ];
@@ -311,6 +333,8 @@ export async function executeMultiModelRequest(
     // Gemini primary
     candidates = [
       primaryModel,
+      'gemini-3.5-flash',
+      'gemini-3.6-flash',
       'gemini-2.5-flash',
       'gemini-2.5-flash-lite',
       'gemini-2.0-flash-lite',
