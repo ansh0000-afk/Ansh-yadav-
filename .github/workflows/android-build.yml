@@ -13,11 +13,12 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '22'
-        cache: 'npm'
+    - name: Set up Node.js 22 explicitly
+      run: |
+        sudo npm cache clean -f
+        sudo n 22 || npm install -g n && sudo n 22
+        node -v
+        npm -v
 
     - name: Install Dependencies
       run: npm install
