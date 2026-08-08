@@ -422,3 +422,39 @@ async function startServer() {
 }
 
 startServer();
+app.post('/api/chat', async (req, res) => {
+  try {
+    const { messages, persona, settings, userMemory, attachedImage } = req.body;
+    
+    const ai = getGenAI(req);
+    const modelName = 'gemini-2.5-flash';
+    
+    const chatHistory = messages.map((m: any) => ({
+      role: m.role === 'user' ? 'user' : 'model',
+      parts: [{ text: m.content }]
+    }));
+
+    const chat = ai.getGenerativeModel({ 
+      model: modelName,
+      systemInstruction: persona?.systemPrompt || settings?.userCustomInstructions
+    }).startChat({
+      history: chatHistory.slice(0, -1)
+    });
+
+    const lastMessage = messages[messages.length - 1]?.content || 'Hello';
+    const result = await chat.sendMessage(lastMessage);
+    const responseText = result.response.text();
+
+    res.json({
+      text: responseText,
+      groundingSources: [],
+      toolExecutions: []
+    });
+
+  } catch (error: any) {
+    console.error('API Chat Error:', error);
+    res.status(500).json({ 
+      error: error.message || 'Internal Server Error' 
+    });
+  }
+});
