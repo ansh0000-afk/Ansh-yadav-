@@ -7,7 +7,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { messages, persona, settings } = req.body;
+    const { messages } = req.body;
 
     const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
     if (!apiKey) {
@@ -16,8 +16,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const ai = new GoogleGenAI({ apiKey });
 
+    // नए SDK के लिए सही मॉडल नाम फॉर्मेट
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.0-flash',
       contents: messages && messages.length > 0 
         ? messages.map((msg: any) => ({
             role: msg.role === 'user' ? 'user' : 'model',
