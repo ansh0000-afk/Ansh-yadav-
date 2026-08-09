@@ -44,7 +44,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [lockOnBackground, setLockOnBackground] = useState(settings.appLock?.lockOnBackground ?? true);
 
   // AI Parameters
-  const [aiModel, setAiModel] = useState<string>(settings.aiModel || 'gemini-3.5-flash');
+  const [aiModel, setAiModel] = useState<string>(settings.aiModel || 'gemini-3.6-flash');
   const [temperature, setTemperature] = useState<number>(settings.temperature ?? 0.7);
   const [maxTokens, setMaxTokens] = useState<number>(settings.maxTokens ?? 2048);
 
@@ -811,8 +811,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 className="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 font-medium"
               >
                 <optgroup label="Google Gemini Free API">
-                  <option value="gemini-3.5-flash">Gemini 3.5 Flash (Flagship Chat - Recommended)</option>
-                  <option value="gemini-3.6-flash">Gemini 3.6 Flash (Multimodal & High Speed)</option>
+                  <option value="gemini-3.6-flash">Gemini 3.6 Flash (Recommended - Current Stable Flagship)</option>
+                  <option value="gemini-3.5-flash">Gemini 3.5 Flash (Multimodal & High Speed)</option>
                   <option value="gemini-2.5-flash">Gemini 2.5 Flash (Balanced Multimodal)</option>
                   <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (High Throughput)</option>
                   <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite (Ultra Lean)</option>

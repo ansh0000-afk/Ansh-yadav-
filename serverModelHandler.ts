@@ -15,15 +15,26 @@ export interface FreeAIModelInfo {
 
 export const FREE_AI_MODELS_SERVER: FreeAIModelInfo[] = [
   {
+    id: 'gemini-3.6-flash',
+    name: 'Gemini 3.6 Flash',
+    provider: 'google',
+    providerLabel: 'Google Gemini',
+    description: 'Current stable flagship model for multi-turn chat, reasoning & search grounding.',
+    contextWindow: '1M tokens',
+    speed: 'Ultra Fast',
+    isFree: true,
+    badge: 'Recommended',
+    supportsImage: true
+  },
+  {
     id: 'gemini-3.5-flash',
     name: 'Gemini 3.5 Flash',
     provider: 'google',
     providerLabel: 'Google Gemini',
-    description: 'Flagship versatile model for general multi-turn chat, reasoning & search grounding.',
+    description: 'High-speed versatile model for general dialogue.',
     contextWindow: '1M tokens',
     speed: 'Ultra Fast',
     isFree: true,
-    badge: 'Flagship Chat',
     supportsImage: true
   },
   {
@@ -48,18 +59,6 @@ export const FREE_AI_MODELS_SERVER: FreeAIModelInfo[] = [
     speed: 'Ultra Fast',
     isFree: true,
     badge: 'Fast Tasks',
-    supportsImage: true
-  },
-  {
-    id: 'gemini-3.6-flash',
-    name: 'Gemini 3.6 Flash',
-    provider: 'google',
-    providerLabel: 'Google Gemini',
-    description: 'High-speed multimodal model. Best reasoning & search grounding.',
-    contextWindow: '1M tokens',
-    speed: 'Ultra Fast',
-    isFree: true,
-    badge: 'Recommended',
     supportsImage: true
   },
   {
@@ -279,13 +278,18 @@ async function callGemini(
         modelUsed: modelId
       };
     } catch (err: any) {
-      const errMsg = err?.message || String(err);
-      const isRateLimit = errMsg.includes('429') || errMsg.includes('RESOURCE_EXHAUSTED') || errMsg.includes('Quota exceeded') || err?.status === 429;
+      const errMsg = String(err?.message || err);
+      const isQuotaExhausted = errMsg.includes('RESOURCE_EXHAUSTED') || errMsg.includes('Quota exceeded') || errMsg.includes('exceeded your current quota');
+      const isRateLimit = err?.status === 429 || errMsg.includes('429') || errMsg.includes('TOO_MANY_REQUESTS');
 
-      if (isRateLimit && attempt <= maxRetries) {
-        console.warn(`[Gemini API] 429 Rate limit hit for ${modelId}. Retry attempt ${attempt}/${maxRetries} after ${delayMs}ms...`);
-        await delay(delayMs);
-        delayMs *= 2; // exponential backoff
+      if (isQuotaExhausted) {
+        console.warn(`[Gemini API] Quota exhausted for model ${modelId}. Immediately failing over to next fallback model.`);
+        throw err;
+      }
+
+      if (isRateLimit && attempt <= 1) {
+        console.warn(`[Gemini API] Transient rate limit hit for ${modelId}. Retrying once after 300ms...`);
+        await delay(300);
         continue;
       }
 
@@ -312,7 +316,7 @@ export async function executeMultiModelRequest(
   modelUsed: string;
   wasFallback: boolean;
 }> {
-  const primaryModel = settings?.selectedModel || settings?.aiModel || 'gemini-3.5-flash';
+  const primaryModel = settings?.selectedModel || settings?.aiModel || 'gemini-3.6-flash';
   const autoFallback = settings?.autoFallback !== false;
 
   // Define candidate sequence based on user preference

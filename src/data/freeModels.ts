@@ -2,15 +2,26 @@ import { FreeAIModel } from '../types';
 
 export const FREE_AI_MODELS: FreeAIModel[] = [
   {
+    id: 'gemini-3.6-flash',
+    name: 'Gemini 3.6 Flash',
+    provider: 'google',
+    providerLabel: 'Google Gemini',
+    description: 'Current stable flagship model for multi-turn chat, reasoning & search grounding.',
+    contextWindow: '1M tokens',
+    speed: 'Ultra Fast',
+    isFree: true,
+    badge: 'Recommended',
+    supportsImage: true
+  },
+  {
     id: 'gemini-3.5-flash',
     name: 'Gemini 3.5 Flash',
     provider: 'google',
     providerLabel: 'Google Gemini',
-    description: 'Flagship versatile model for general multi-turn chat, reasoning & search grounding.',
+    description: 'High-speed versatile model for general dialogue.',
     contextWindow: '1M tokens',
     speed: 'Ultra Fast',
     isFree: true,
-    badge: 'Flagship Chat',
     supportsImage: true
   },
   {
@@ -35,18 +46,6 @@ export const FREE_AI_MODELS: FreeAIModel[] = [
     speed: 'Instant',
     isFree: true,
     badge: 'Fast Tasks',
-    supportsImage: true
-  },
-  {
-    id: 'gemini-3.6-flash',
-    name: 'Gemini 3.6 Flash',
-    provider: 'google',
-    providerLabel: 'Google Gemini',
-    description: 'High-speed multimodal model. Best reasoning & search grounding.',
-    contextWindow: '1M tokens',
-    speed: 'Ultra Fast',
-    isFree: true,
-    badge: 'Recommended',
     supportsImage: true
   },
   {
@@ -136,4 +135,4 @@ export const FREE_AI_MODELS: FreeAIModel[] = [
   }
 ];
 
-export const DEFAULT_MODEL_ID = 'gemini-3.5-flash';
+export const DEFAULT_MODEL_ID = 'gemini-3.6-flash';

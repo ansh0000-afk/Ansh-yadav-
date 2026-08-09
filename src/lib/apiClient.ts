@@ -9,6 +9,9 @@ export interface ApiResponse<T = any> {
   error?: string;
 }
 
+/**
+ * Safely parse HTTP response without throwing "Unexpected token '<'" on HTML error pages.
+ */
 export async function safeParseResponse<T = any>(res: Response): Promise<ApiResponse<T>> {
   const contentType = res.headers.get('content-type') || '';
   const isJson = contentType.toLowerCase().includes('application/json');
@@ -30,10 +33,12 @@ export async function safeParseResponse<T = any>(res: Response): Promise<ApiResp
         error: !res.ok ? (data.error || data.message || `Request failed with status ${res.status}`) : undefined
       };
     } catch (parseErr) {
+      // Content type stated JSON but body wasn't valid JSON
       console.warn('Failed to parse JSON response despite JSON content-type:', parseErr);
     }
   }
 
+  // Handle HTML or non-JSON error pages (e.g. Vercel/Cloud Run 502/504 HTML)
   const trimmed = rawText.trim();
   if (trimmed.startsWith('<') || trimmed.toLowerCase().includes('<!doctype')) {
     const cleanMsg = `Server returned an HTML error page (HTTP ${res.status} ${res.statusText || 'Service Unavailable'}). Please try again.`;
@@ -54,6 +59,9 @@ export async function safeParseResponse<T = any>(res: Response): Promise<ApiResp
   };
 }
 
+/**
+ * Perform a fetch request with automatic exponential backoff on 429 rate limits (max 3 retries).
+ */
 export async function apiFetch<T = any>(
   url: string,
   options: RequestInit = {},
@@ -73,14 +81,14 @@ export async function apiFetch<T = any>(
       if (isRateLimit && attempt <= maxRetries) {
         console.warn(`[API Client] 429 Rate limit hit on ${url}. Retry ${attempt}/${maxRetries} after ${delayMs}ms...`);
         await new Promise(resolve => setTimeout(resolve, delayMs));
-        delayMs *= 2;
+        delayMs *= 2; // 1s -> 2s -> 4s
         continue;
       }
 
       return parsed;
     } catch (err: any) {
       if (options.signal?.aborted) {
-        throw err;
+        throw err; // User canceled request
       }
 
       if (attempt <= maxRetries) {
