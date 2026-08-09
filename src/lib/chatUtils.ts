@@ -16,3 +16,13 @@ export async function sendChatMessage(userMessage: string) {
     throw new Error(error?.message || "Failed to process chat request");
   }
 }
+export function formatDateTime(date: Date | string | number): string {
+  const d = new Date(date);
+  return d.toLocaleString('en-US', {
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: true,
+    month: 'short',
+    day: 'numeric'
+  });
+}
