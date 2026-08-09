@@ -26,3 +26,28 @@ export function formatDateTime(date: Date | string | number): string {
     day: 'numeric'
   });
 }
+
+export async function copyConversationToClipboard(messages: any[]): Promise<boolean> {
+  try {
+    const text = messages.map(m => `${m.role || 'User'}: ${m.text || m.content}`).join('\n\n');
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (err) {
+    console.error("Copy failed:", err);
+    return false;
+  }
+}
+
+export async function shareChatSession(title: string, messages: any[]): Promise<boolean> {
+  try {
+    const text = messages.map(m => `${m.role || 'User'}: ${m.text || m.content}`).join('\n\n');
+    if (navigator.share) {
+      await navigator.share({ title, text });
+      return true;
+    }
+    return await copyConversationToClipboard(messages);
+  } catch (err) {
+    console.error("Share failed:", err);
+    return false;
+  }
+}
